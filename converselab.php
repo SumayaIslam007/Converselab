@@ -1,12 +1,9 @@
 <?php
-/**
- * Plugin Name:       Converselab
- * Plugin URI:        https://example.com
- * Description:       Starter plugin skeleton for Day 2.
- * Version:           1.0.0
- * Author:            Sumaya Islam
- * Text Domain:       converselab
- * Domain Path:       /languages
+/*
+ * Plugin Name: Converselab Notes
+ * Description: A full-stack WordPress plugin for creating and displaying notes.
+ * Version: 0.1.0
+ * Author: Sumaya
  */
 
 if(!defined('ABSPATH')){

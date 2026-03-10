@@ -1,7 +1,10 @@
+import { registerBlockType } from '@wordpress/blocks';
+import { InspectorControls } from '@wordpress/block-editor';
 import {createRoot, useState, useEffect} from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { createNote, updateNote } from './api/notes';
 import {useNotes} from './hooks/useNotes';
+import { PanelBody, RangeControl, SelectControl, ToggleControl, Spinner, Placeholder } from '@wordpress/components';
 
 apiFetch.use(apiFetch.createNonceMiddleware(converselabSettings.nonce));
 
@@ -122,7 +125,6 @@ const NotesList = ({ notes, isLoading, error, onEditClick, onNoteDeleted }) => {
                     <th>Title</th>
                     <th>Priority</th>
                     <th>Date Created</th>
-                    {/* NEW: The Actions Column Header */}
                     <th style={{ width: '150px' }}>Actions</th>
                 </tr>
             </thead>
@@ -152,6 +154,118 @@ const NotesList = ({ notes, isLoading, error, onEditClick, onNoteDeleted }) => {
         </table>
     );
 };
+
+registerBlockType('converselab/notes-block', {
+    title: 'Converslab Notes',
+    icon: 'list-view',
+    category: 'widgets',
+    
+    attributes: {
+        count: { type: 'number', default: 3 },
+        priority: { type: 'string', default: 'all' },
+        showSource: { type: 'boolean', default: true }
+    },
+    
+    edit: ({ attributes, setAttributes }) => {
+        const { count, priority, showSource } = attributes;
+        const [previewNotes, setPreviewNotes] = useState([]);
+        const [isLoading, setIsLoading] = useState(true);
+
+        useEffect(() => {
+            setIsLoading(true);
+            apiFetch({ url: converselabSettings.restUrl })
+                .then(data => {
+                    let filtered = data;
+                    if (priority !== 'all') {
+                        filtered = filtered.filter(n => n.priority === priority);
+                    }
+                    filtered.sort((a, b) => b.id - a.id);
+                    setPreviewNotes(filtered.slice(0, count));
+                    setIsLoading(false);
+                })
+                .catch(() => setIsLoading(false));
+        }, [count, priority]);
+
+        return (
+            <>
+                <InspectorControls>
+                    <PanelBody title="Display Settings" initialOpen={true}>
+                        <RangeControl 
+                            label="Number of Notes"
+                            value={count} 
+                            onChange={(val) => setAttributes({ count: val })}
+                            min={1} max={10}
+                        />
+                        <SelectControl
+                            label="Filter by Priority"
+                            value={priority}
+                            options={[
+                                { label: 'Show All', value: 'all' },
+                                { label: 'Low Only', value: 'low' },
+                                { label: 'Medium Only', value: 'medium' },
+                                { label: 'High Only', value: 'high' }
+                            ]}
+                            onChange={(val) => setAttributes({ priority: val })}
+                        />
+                        <ToggleControl
+                            label="Show Source Link"
+                            checked={showSource}
+                            onChange={(val) => setAttributes({ showSource: val })}
+                        />
+                    </PanelBody>
+                </InspectorControls>
+
+                <div className="converselab-block-preview" style={{ padding: '20px', border: '1px solid #e0e0e0', backgroundColor: '#fff' }}>
+                    
+                    {isLoading && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
+                            <Spinner />
+                        </div>
+                    )}
+
+                    {!isLoading && previewNotes.length === 0 && (
+                        <Placeholder 
+                            icon="list-view" 
+                            label="Converslab Notes"
+                            instructions="No notes found matching your criteria. Try changing the priority filter or create a new note in the dashboard."
+                        />
+                    )}
+
+                    {!isLoading && previewNotes.length > 0 && (
+                        <div>
+                            <h3 style={{ marginTop: 0, fontSize: '18px', borderBottom: '2px solid #f0f0f0', paddingBottom: '10px' }}>
+                                Latest Notes
+                            </h3>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                {previewNotes.map(note => (
+                                    <li key={note.id} style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <strong>{note.title}</strong>
+                                            <span className={`converselab-badge priority-${note.priority}`} 
+                                                style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: '#f0f0f0', color: '#555' }}>
+                                                {note.priority.toUpperCase()}
+                                            </span>
+                                        </div>
+                                        
+                                        {showSource && note.source_url && (
+                                            <div style={{ fontSize: '12px', marginTop: '4px', color: '#0073aa' }}>
+                                                🔗 {note.source_url}
+                                            </div>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    },
+    
+    save: () => {
+        return null; 
+    }
+});
 
 const App = () => {
     // Uses our new custom hook!

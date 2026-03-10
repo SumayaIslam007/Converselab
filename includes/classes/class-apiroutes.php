@@ -18,8 +18,8 @@ class ApiRoutes{
             [
                 'methods'               => 'GET',
                 'callback'              => [__CLASS__,'get_notes'],
-                //'permission_callback'   =>[__CLASS__,'check_permission'],
-                'permission_callback'   =>'__return_true',
+                'permission_callback'   =>[__CLASS__,'check_permission'],
+                //'permission_callback'   =>'__return_true',
                 'args'=>[
                     'page'=>[
                         'validate_callback' => function($param){
@@ -209,6 +209,10 @@ class ApiRoutes{
     }
 
     public static function check_update_permission($request){
+        if (!current_user_can('manage_options')) {
+            return new \WP_Error('rest_forbidden', 'Sorry, you are not allowed to do that.', ['status' => rest_authorization_required_code()]);
+        }
+
         $post_id = $request->get_param('id');
         $post=get_post($post_id);
 
@@ -254,6 +258,10 @@ class ApiRoutes{
     }
 
     public static function check_delete_permission($request){
+        if (!current_user_can('manage_options')) {
+            return new \WP_Error('rest_forbidden', 'Sorry, you are not allowed to do that.', ['status' => rest_authorization_required_code()]);
+        }
+        
         $post_id = $request->get_param('id');
         $post=get_post($post_id);
 
